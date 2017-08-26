@@ -2,6 +2,8 @@
 
 ;; Copyright (C) 2017 ChienYu Lin
 
+;; Author: ChienYu Lin <cy20lin@gmail.com>
+
 ;; This file is part of Aide.
 
 ;; Aide is free software; you can redistribute it and/or modify
@@ -17,7 +19,7 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with Aide. If not, see <http://www.gnu.org/licenses/>.
 
-;; Author: ChienYu Lin <cy20lin@gmail.com>
+;;; Commentary:
 
 ;;; Code:
 
@@ -25,10 +27,26 @@
 (require 'projectile)
 
 ;;;###autoload
-(cl-defun aide-register-project-type (project-type marker-files &key properties hooks modes commands configs compile test run test-suffix test-prefix)
+(defvar aide-project-run-handlers (list #'aide-project-default-run-handler)
+  "Default run-handlers.")
+
+;;;###autoload
+(defvar aide-project-use-projectile-command-fallback nil
+  "Fallback to use projectile command if its value is non-nil.")
+
+;;;###autoload
+(defvar aide-project-generic-use-non-project-properties t
+  "Use properties from current non-project-type, when project-type `generic' is specified.")
+
+;;;###autoload
+(defvaralias 'aide-project-types 'projectile-project-types
+  "A hash table holding all project-types with its properties.")
+
+;;;###autoload
+(cl-defun aide-register-project-type (project-type marker-files &key properties hook modes commands configs compile test run test-suffix test-prefix)
   "Register a project-type."
   (let ((props properties))
-    (when hooks        (setq props (plist-put props 'hooks hooks)))
+    (when hook         (setq props (plist-put props 'hook hook)))
     (when modes        (setq props (plist-put props 'modes modes)))
     (when commands     (setq props (plist-put props 'commands commands)))
     (when configs      (setq props (plist-put props 'configs configs)))
@@ -41,7 +59,7 @@
     (puthash project-type props projectile-project-types)))
 
 ;;;###autoload
-(defun aide-project-type-p ()
+(defun aide-project-type-p (project-type)
   "Check wether current buffer is project and its type is `project-type'."
   (let ((marker (aide-project-type-get project-type '(marker-files))))
     (if (listp marker) (projectile-verify-files marker) (funcall marker))))
@@ -59,13 +77,13 @@
 ;;;###autoload
 (defun aide-project-type-run (project-type keys &rest args)
   "Run the property in `project-type' with given accessing `keys'."
-  (let (value (aide-project-type-get project-type keys))
-    (apply #'aide-project-handle-run `(,keys ,value . ,args))))
+  (let ((value (aide-project-type-get project-type keys)))
+    (apply #'aide-project--handle-run `(,keys ,value . ,args))))
 
 ;;;###autoload
 (defun aide-project-type-get (project-type keys)
   "Get the property in `project-type' with given accessing `keys'."
-  (reduce #'plist-get keys :initial-value (gethash project-type projectile-project-types)))
+  (cl-reduce #'plist-get keys :initial-value (gethash project-type projectile-project-types)))
 
 ;;;###autoload
 (defun aide-project-p ()
@@ -97,29 +115,13 @@
    ((typep value 'function) (funcall value))
    ((and value (typep value 'list)) (compile (mapconcat #'shell-quote-argument (mapcar #'eval value) " ")))
    ((typep value 'string) (compile value))
-   ((and aide-fallback-to-projectile-command (eq (first keys) 'commands))
+   ((and aide-project-use-projectile-command-fallback (eq (first keys) 'commands))
     (pcase (second keys)
       ('run-command (call-interactively 'projectile-run-project))
       ('compile-command (call-interactively 'projectile-compile-project))
       ('test-command (call-interactively 'projectile-test-project))))
    (t nil))
   nil)
-
-;;;###autoload
-(defvar aide-project-run-handlers (list #'aide-project-default-run-handler)
-  "Default run-handlers.")
-
-;;;###autoload
-(defvar aide-project-use-projectile-command-fallback nil
-  "Fallback to use projectile command if its value is non-nil.")
-
-;;;###autoload
-(defvar aide-project-generic-use-non-project-properties t
-  "Use properties from current non-project-type, when project-type `generic' is specified.")
-
-;;;###autoload
-(defvaralias 'aide-project-types 'projectile-project-types
-  "A hash table holding all project-types with its properties.")
 
 (provide 'aide-project)
 ;;; aide-project.el ends here

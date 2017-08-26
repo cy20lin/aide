@@ -2,6 +2,8 @@
 
 ;; Copyright (C) 2017 ChienYu Lin
 
+;; Author: ChienYu Lin <cy20lin@gmail.com>
+
 ;; This file is part of Aide.
 
 ;; Aide is free software; you can redistribute it and/or modify
@@ -17,18 +19,18 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with Aide. If not, see <http://www.gnu.org/licenses/>.
 
-;; Author: ChienYu Lin <cy20lin@gmail.com>
+;;; Commentary:
 
 ;;; Code:
 
 (require 'cl-lib)
 
 ;;;###autoload
-(cl-defun aide-register-non-project-type (non-project-type modes- &key properties hooks modes commands configs compile test run test-suffix test-prefix)
+(cl-defun aide-register-non-project-type (non-project-type modes- &key properties hook modes commands configs compile test run test-suffix test-prefix)
   "Register a non-project-type."
   (let ((props properties)
         (modes (append modes- modes)))
-    (when hooks        (setq props (plist-put props 'hooks hooks)))
+    (when hook         (setq props (plist-put props 'hook hook)))
     (when modes        (setq props (plist-put props 'modes modes)))
     (when commands     (setq props (plist-put props 'commands commands)))
     (when configs      (setq props (plist-put props 'configs configs)))
@@ -58,13 +60,13 @@
 ;;;###autoload
 (defun aide-non-project-type-run (non-project-type keys &rest args)
   "Run the property in `non-project-type' with given accessing `keys'."
-  (let (value (aide-non-project-type-get non-project-type keys))
-    (apply #'aide-non-project-handle-run `(,keys ,value . ,args))))
+  (let ((value (aide-non-project-type-get non-project-type keys)))
+    (apply #'aide-non-project--handle-run `(,keys ,value . ,args))))
 
 ;;;###autoload
 (defun aide-non-project-type-get (non-project-type keys)
   "Get the property in `non-project-type' with given accessing `keys'."
-  (reduce #'plist-get keys :initial-value (gethash non-project-type aide-non-project-types)))
+  (cl-reduce #'plist-get keys :initial-value (gethash non-project-type aide-non-project-types)))
 
 ;;;###autoload
 (defun aide-non-project-p ()
@@ -81,7 +83,6 @@
   "Get the property in current buffer's `non-project-type' with given accessing `keys'."
   (aide-project-type-get (aide-project-type) keys))
 
-;;;###autoload
 (defun aide-non-project--handle-run (keys value &rest args)
   "Handle all run handlers defined in `aide-non-project-run-handlers'."
   (cl-dolist (handler aide-non-project-run-handlers)

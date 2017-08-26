@@ -3,6 +3,8 @@
 ;; Copyright (C) 2017 ChienYu Lin
 
 ;; Author: ChienYu Lin <cy20lin@gmail.com>
+;; Version: 0.1
+;; Package-Requires: ((emacs "24.4") (cl-lib "0.5") (projectile "0.14.0")))
 
 ;; This file is part of Aide.
 

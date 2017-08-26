@@ -19,6 +19,8 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with Aide. If not, see <http://www.gnu.org/licenses/>.
 
+;;; Commentary:
+
 ;;; Code:
 
 (require 'aide-project)
@@ -27,21 +29,25 @@
 ;;;###autoload
 (defun aide-buffer-type ()
   "Get the current buffer-type"
-  (list (aide-project-type) (aide-non-project-type)))
+  ;; TODO: Maybe this can be this can be customized by users
+  (pcase (list (aide-project-type) (aide-non-project-type))
+    (`(nil ,non-project-type) (list 'non-project-type non-project-type))
+    (`(generic ,non-project-type) (list 'non-project-type non-project-type))
+    (`(,project-type ,_) (list 'project-type project-type))))
 
 ;;;###autoload
 (defun aide-buffer-type-run (buffer-type keys &rest args)
   "Run the property in `buffer-type' with given accessing `keys'."
-  (pcase (aide-buffer-select-implementation-type buffer-type)
-    (`(project ,type) (apply #'aide-project-type-run `(,keys . ,args)))
-    (`(non-project ,type) (apply #'aide-non-project-type-run `(keys . ,args)))))
+  (pcase buffer-type
+    (`(project ,type) (apply #'aide-project-type-run `(,type ,keys . ,args)))
+    (`(non-project ,type) (apply #'aide-non-project-type-run `(,type ,keys . ,args)))))
 
 ;;;###autoload
 (defun aide-buffer-type-get (buffer-type keys)
   "Get the property in `buffer-type' with given accessing `keys'."
-  (pcase (aide-buffer-select-implementation-type buffer-type)
-    (`(project ,type) (aide-project-type-get keys))
-    (`(non-project ,type) (aide-non-project-type-get keys))))
+  (pcase buffer-type
+    (`(project ,type) (aide-project-type-get type keys))
+    (`(non-project ,type) (aide-non-project-type-get type keys))))
 
 ;;;###autoload
 (defun aide-buffer-run (keys &rest args)
@@ -52,14 +58,6 @@
 (defun aide-buffer-get (keys)
   "Get the property in current `buffer-type' with given accessing `keys'."
   (aide-buffer-type-get (aide-buffer-type) keys))
-
-;;;###autoload
-(defun aide-buffer-select-implementation-type (buffer-type)
-  "Select a type in buffer-type for further implementation."
-  (pcase buffer-type
-    (`(nil ,non-project-type) (list 'non-project-type non-project-type))
-    (`(generic ,non-project-type) (list 'non-project-type non-project-type))
-    (`(,project-type ,_) (list 'project-type project-type))))
 
 (provide 'aide-buffer)
 ;;; aide-buffer.el ends here
