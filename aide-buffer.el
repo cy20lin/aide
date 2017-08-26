@@ -21,30 +21,39 @@
 
 ;;; Code:
 
+(require 'aide-project)
+(require 'aide-non-project)
+
+;;;###autoload
 (defun aide-buffer-type ()
   "Get the current buffer-type"
   (list (aide-project-type) (aide-non-project-type)))
 
+;;;###autoload
 (defun aide-buffer-type-run (buffer-type keys &rest args)
   "Run the property in `buffer-type' with given accessing `keys'."
   (pcase (aide-buffer-select-implementation-type buffer-type)
-    (`(project ,type) (apply #'aide-project-type-run (cons keys args)))
-    (`(non-project ,type) (apply #'aide-non-project-type-run (cons keys args)))))
+    (`(project ,type) (apply #'aide-project-type-run `(,keys . ,args)))
+    (`(non-project ,type) (apply #'aide-non-project-type-run `(keys . ,args)))))
 
+;;;###autoload
 (defun aide-buffer-type-get (buffer-type keys)
   "Get the property in `buffer-type' with given accessing `keys'."
   (pcase (aide-buffer-select-implementation-type buffer-type)
     (`(project ,type) (aide-project-type-get keys))
     (`(non-project ,type) (aide-non-project-type-get keys))))
 
+;;;###autoload
 (defun aide-buffer-run (keys &rest args)
   "Run the property in current `buffer-type' with given accessing `keys'."
-  (apply #'aide-buffer-type-run (cons (aide-buffer-type) args)))
+  (apply #'aide-buffer-type-run `(,(aide-buffer-type) ,keys . ,args)))
 
+;;;###autoload
 (defun aide-buffer-get (keys)
   "Get the property in current `buffer-type' with given accessing `keys'."
-  (aide-buffer-type-get (aide-buffer-type)))
+  (aide-buffer-type-get (aide-buffer-type) keys))
 
+;;;###autoload
 (defun aide-buffer-select-implementation-type (buffer-type)
   "Select a type in buffer-type for further implementation."
   (pcase buffer-type
@@ -52,4 +61,5 @@
     (`(generic ,non-project-type) (list 'non-project-type non-project-type))
     (`(,project-type ,_) (list 'project-type project-type))))
 
+(provide 'aide-buffer)
 ;;; aide-buffer.el ends here

@@ -21,54 +21,67 @@
 
 ;;; Code:
 
-(cl-defun aide-register-non-project-type (non-project-type modes- &key modes commands configs compile test run test-suffix test-prefix properties)
+(require 'cl-lib)
+
+;;;###autoload
+(cl-defun aide-register-non-project-type (non-project-type modes- &key properties hooks modes commands configs compile test run test-suffix test-prefix)
   "Register a non-project-type."
   (let ((props properties)
         (modes (append modes- modes)))
-    (when compile      (setq props (plist-put props 'compile-command compile)))
-    (when run          (setq props (plist-put props 'run-command run)))
-    (when test         (setq props (plist-put props 'test-command test)))
+    (when hooks        (setq props (plist-put props 'hooks hooks)))
     (when modes        (setq props (plist-put props 'modes modes)))
     (when commands     (setq props (plist-put props 'commands commands)))
     (when configs      (setq props (plist-put props 'configs configs)))
+    (when compile      (setq props (plist-put props 'compile-command compile)))
+    (when test         (setq props (plist-put props 'test-command test)))
+    (when run          (setq props (plist-put props 'run-command run)))
     (when test-suffix  (setq props (plist-put props 'test-suffix test-suffix)))
     (when test-prefix  (setq props (plist-put props 'test-prefix test-prefix)))
     (puthash non-project-type props aide-non-project-types)
     (aide-non-project-type--add-modes non-project-type modes)))
 
+;;;###autoload
 (defun aide-non-project-type-p (non-project-type)
   "Check wether current buffer is non-project and its type is `non-project-type'."
   (eq (aide-non-project-type) non-project-type))
 
+;;;###autoload
 (defun aide-non-project-type ()
   "Get current buffer's non-project-type, return `nil' if not found."
   (or (car (gethash major-mode aide-mode-to-non-project-type-map)) 'generic))
 
+;;;###autoload
 (defun aide-non-project-types ()
   "Return all registered non-project-types in a list."
   (hash-table-keys aide-non-project-types))
 
+;;;###autoload
 (defun aide-non-project-type-run (non-project-type keys &rest args)
   "Run the property in `non-project-type' with given accessing `keys'."
   (let (value (aide-non-project-type-get non-project-type keys))
     (apply #'aide-non-project-handle-run `(,keys ,value . ,args))))
 
+;;;###autoload
 (defun aide-non-project-type-get (non-project-type keys)
   "Get the property in `non-project-type' with given accessing `keys'."
   (reduce #'plist-get keys :initial-value (gethash non-project-type aide-non-project-types)))
 
+;;;###autoload
 (defun aide-non-project-p ()
   "Check wether current buffer is a non-project."
   (not (projectile-project-p)))
 
+;;;###autoload
 (defun aide-non-project-run (keys &rest args)
   "Run the property in current buffer's `non-project-type' with given accessing `keys'."
   (apply #'aide-non-project-type-run `(,(aide-non-project-type) . ,args)))
 
+;;;###autoload
 (defun aide-non-project-get (keys)
   "Get the property in current buffer's `non-project-type' with given accessing `keys'."
   (aide-project-type-get (aide-project-type) keys))
 
+;;;###autoload
 (defun aide-non-project--handle-run (keys value &rest args)
   "Handle all run handlers defined in `aide-non-project-run-handlers'."
   (cl-dolist (handler aide-non-project-run-handlers)
@@ -76,6 +89,7 @@
       ('stop (return 'stop))
       (_ (return)))))
 
+;;;###autoload
 (defun aide-non-project-default-run-handler (keys value &rest args)
   "Default run handler."
   (cond
@@ -85,6 +99,7 @@
    (t nil))
   nil)
 
+;;;###autoload
 (defvar aide-non-project-run-handlers (list #'aide-non-project-default-run-handler)
   "Default run-handlers.")
 
@@ -95,10 +110,13 @@
       (add-to-list 'non-project-types non-project-type)
       (puthash mode non-project-types aide-mode-to-non-project-type-map))))
 
+;;;###autoload
 (defvar aide-mode-to-non-project-type-map (make-hash-table)
   "A hash table holding all major-mode corresponding to non-project-types.")
 
+;;;###autoload
 (defvar aide-non-project-types (make-hash-table)
   "A hash table holding all non-project-types with its properties.")
 
+(provide 'aide-non-project)
 ;;; aide-non-project.el ends here

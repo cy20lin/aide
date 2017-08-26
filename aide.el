@@ -1,4 +1,4 @@
-;;; aide.el --- integrating your own development environment
+;;; aide.el --- Integrate developing tools with ease
 
 ;; Copyright (C) 2017 ChienYu Lin
 
@@ -52,74 +52,7 @@
 
 ;;; Code:
 
-(defvar aide-mode-initialization-hooks-for-major-modes
-  (make-hash-table)
-  "A hash table holding set of major-mode corresponding initialization-hooks, \
-which are run at the beginning of aide-mode.")
-
-(defvar aide-mode-finalization-hooks-for-major-modes
-  (make-hash-table)
-  "A hash table holding set of major-mode corresponding finalization-hooks, \
-which are run at the end of aide-mode.")
-
-(defvar aide-mode-initialization-hooks nil
-  "Initialization hooks, which are run at the very beginning of aide-mode.")
-
-(defvaralias 'aide-mode-finalization-hooks 'aide-mode-hook
-  "Finalization hooks, which are run at the very end of aide-mode.")
-
-(define-minor-mode aide-mode
-  "Aide minor mode."
-  :init-value nil
-  (run-hooks aide-mode-initialization-hooks)
-  (run-hooks (gethash major-mode aide-mode-initialization-hooks-for-major-modes))
-  (cond
-   (aide-mode
-    ;; setup configs
-    (aide-buffer-run '(configs setup)))
-   (t
-    ;; teardown configs
-    (aide-buffer-run '(configs teardown))
-    ))
-  (run-hooks (gethash major-mode aide-mode-finalization-hooks-for-major-modes)))
-
-(define-globalized-minor-mode global-aide-mode aide-mode
-  aide-mode-try-enable
-  :init-value nil)
-
-(defvar aide-global-modes t
-  "Modes for which option `aide-mode' is turned on.
-
-If t, Aide Mode is turned on for all major modes.  If a list,
-Mode is turned on for all `major-mode' symbols in that
-list.  If the `car' of the list is `not', Aide Mode is turned
-on for all `major-mode' symbols _not_ in that list.  If nil,
-Aide Mode is never turned on by command `global-aide-mode'.")
-
-(defun aide-mode-may-enable-p-on-demand ()
-  "Whether `major-mode' is disallowed by `aide-global-modes'"
-  (and
-   (pcase aide-global-modes
-     (`t t)
-     (`(not . ,modes) (not (memq major-mode modes)))
-     (modes (memq major-mode modes)))))
-
-(defun aide-mode-may-enable-p-if-not-minibuffer ()
-  "Return non-nil if current buffer is not a minibuffer."
-  (not (minibufferp)))
-
-(defvar aide-mode-may-enable-p-handlers
-  (list #'aide-mode-may-enable-p-on-demand
-        #'aide-mode-may-enable-p-if-not-minibuffer)
-  "List of may-enable-p handlers.")
-
-(defun aide-mode-may-enable-p ()
-  "Check if `aide-mode' may be activated."
-  (cl-every #'funcall aide-mode-may-enable-p-handlers))
-
-(defun aide-mode-try-enable ()
-  "Enable aide-mode if predicate funcion returns non-nil."
-  (when (aide-mode-may-enable-p) (aide-mode)))
+(require 'aide-mode)
 
 (provide 'aide)
 

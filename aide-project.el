@@ -21,54 +21,68 @@
 
 ;;; Code:
 
-(cl-defun aide-register-project-type (project-type marker-files &key modes commands configs compile test run test-suffix test-prefix properties)
+(require 'cl-lib)
+(require 'projectile)
+
+;;;###autoload
+(cl-defun aide-register-project-type (project-type marker-files &key properties hooks modes commands configs compile test run test-suffix test-prefix)
   "Register a project-type."
   (let ((props properties))
-    (when marker-files (setq props (plist-put props 'marker-files marker-files)))
-    (when compile      (setq props (plist-put props 'compile-command compile)))
-    (when run          (setq props (plist-put props 'run-command run)))
-    (when test         (setq props (plist-put props 'run-command test)))
+    (when hooks        (setq props (plist-put props 'hooks hooks)))
     (when modes        (setq props (plist-put props 'modes modes)))
     (when commands     (setq props (plist-put props 'commands commands)))
     (when configs      (setq props (plist-put props 'configs configs)))
+    (when marker-files (setq props (plist-put props 'marker-files marker-files)))
+    (when compile      (setq props (plist-put props 'compile-command compile)))
+    (when test         (setq props (plist-put props 'test-command test)))
+    (when run          (setq props (plist-put props 'run-command run)))
     (when test-suffix  (setq props (plist-put props 'test-suffix test-suffix)))
     (when test-prefix  (setq props (plist-put props 'test-prefix test-prefix)))
     (puthash project-type props projectile-project-types)))
 
+;;;###autoload
 (defun aide-project-type-p ()
   "Check wether current buffer is project and its type is `project-type'."
   (let ((marker (aide-project-type-get project-type '(marker-files))))
     (if (listp marker) (projectile-verify-files marker) (funcall marker))))
 
+;;;###autoload
 (defun aide-project-type ()
   "Get current buffer's project-type."
   (ignore-errors (projectile-project-type)))
 
+;;;###autoload
 (defun aide-project-types ()
   "Return all registered project-types in a list"
   (hash-table-keys projectile-project-types))
 
+;;;###autoload
 (defun aide-project-type-run (project-type keys &rest args)
   "Run the property in `project-type' with given accessing `keys'."
   (let (value (aide-project-type-get project-type keys))
     (apply #'aide-project-handle-run `(,keys ,value . ,args))))
 
+;;;###autoload
 (defun aide-project-type-get (project-type keys)
   "Get the property in `project-type' with given accessing `keys'."
   (reduce #'plist-get keys :initial-value (gethash project-type projectile-project-types)))
 
+;;;###autoload
 (defun aide-project-p ()
   "Check if current buffer is a project."
   (projectile-project-p))
 
+;;;###autoload
 (defun aide-project-run (keys &rest args)
   "Run the property in current buffer's `project-type' with given accessing `keys'."
   (apply #'aide-project-type-run `(,(aide-project-type) . ,args)))
 
+;;;###autoload
 (defun aide-project-get (keys)
   "Get the property in current buffer's `project-type' with given accessing `keys'."
   (aide-project-type-get (aide-project-type) keys))
 
+;;;###autoload
 (defun aide-project--handle-run (keys value &rest args)
   "Handle all run handlers defined in `aide-project-run-handlers'."
   (cl-dolist (handler aide-project-run-handlers)
@@ -76,6 +90,7 @@
       ('stop (return 'stop))
       (_ (return)))))
 
+;;;###autoload
 (defun aide-project-default-run-handler (keys value &rest args)
   "Default run handler."
   (cond
@@ -90,16 +105,21 @@
    (t nil))
   nil)
 
+;;;###autoload
 (defvar aide-project-run-handlers (list #'aide-project-default-run-handler)
   "Default run-handlers.")
 
+;;;###autoload
 (defvar aide-project-use-projectile-command-fallback nil
   "Fallback to use projectile command if its value is non-nil.")
 
+;;;###autoload
 (defvar aide-project-generic-use-non-project-properties t
   "Use properties from current non-project-type, when project-type `generic' is specified.")
 
+;;;###autoload
 (defvaralias 'aide-project-types 'projectile-project-types
   "A hash table holding all project-types with its properties.")
 
+(provide 'aide-project)
 ;;; aide-project.el ends here
